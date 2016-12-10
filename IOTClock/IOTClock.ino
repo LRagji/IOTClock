@@ -43,7 +43,7 @@ void setup() {
 
   logger.Begin(10, 1000, SD.getUniqueFileName("System/Log", "csv"));
   settings.Begin("User/Set0.csv");
-  logger.LogInfo(String(millis()), F("System Init"));
+  logger.LogInfo(String(millis()), F("Boot Init"));
 
   SetScreenBrightness(255);
 
