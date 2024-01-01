@@ -3,6 +3,7 @@
 #include "RTC_SAMD51.h"
 #include "DateTime.h"
 #include "arduino_secrets.h"
+#include <Adafruit_NeoPixel.h>
 
 #if defined(ADAFRUIT_FEATHER_M4_EXPRESS) || defined(ADAFRUIT_FEATHER_M0_EXPRESS) || defined(ADAFRUIT_FEATHER_M0) || defined(ADAFRUIT_ITSYBITSY_M4_EXPRESS)
 // Configure the pins used for the ESP32 connection
@@ -17,6 +18,7 @@
 char daysOfTheWeek[7][12] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
 RTC_SAMD51 rtc;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, 4, NEO_GRB + NEO_KHZ800);
 
 #include "arduino_secrets.h"
 char ssid[] = SECRET_SSID;
@@ -24,6 +26,10 @@ char pass[] = SECRET_PASS;
 
 
 void setup() {
+  strip.begin();
+  strip.clear();
+  strip.show();
+
   //Start with debug
   Serial.begin(9600);
   while (!Serial) {
@@ -81,5 +87,5 @@ void loop() {
   Serial.print(now.second(), DEC);
   Serial.println();
 
-  delay(3000);
+  blink(0,strip.Color(127, 127, 127), 50, 4950);
 }
