@@ -4,6 +4,8 @@
 #include "DateTime.h"
 #include "arduino_secrets.h"
 #include <Adafruit_NeoPixel.h>
+#include <Adafruit_Protomatter.h>
+#include <Fonts/FreeSansBold9pt7b.h>  // Large friendly font
 
 #if defined(ADAFRUIT_FEATHER_M4_EXPRESS) || defined(ADAFRUIT_FEATHER_M0_EXPRESS) || defined(ADAFRUIT_FEATHER_M0) || defined(ADAFRUIT_ITSYBITSY_M4_EXPRESS)
 // Configure the pins used for the ESP32 connection
@@ -17,8 +19,21 @@
 
 char daysOfTheWeek[7][12] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
+
 RTC_SAMD51 rtc;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, 4, NEO_GRB + NEO_KHZ800);
+uint8_t rgbPins[] = { 7, 8, 9, 10, 11, 12 };
+uint8_t addrPins[] = { 17, 18, 19, 20, 21 };
+uint8_t clockPin = 14;
+uint8_t latchPin = 15;
+uint8_t oePin = 16;
+Adafruit_Protomatter matrix(
+  64,                         // Matrix width in pixels
+  6,                          // Bit depth -- 6 here provides maximum color options
+  1, rgbPins,                 // # of matrix chains, array of 6 RGB pins for each
+  4, addrPins,                // # of address pins (height is inferred), array of pins
+  clockPin, latchPin, oePin,  // Other matrix control pins
+  false);                     // HERE IS THE MAGIC FOR DOUBLE-BUFFERING!
 
 #include "arduino_secrets.h"
 char ssid[] = SECRET_SSID;
@@ -26,6 +41,7 @@ char pass[] = SECRET_PASS;
 
 
 void setup() {
+  //Neopixel
   strip.begin();
   strip.clear();
   strip.show();
@@ -36,14 +52,28 @@ void setup() {
     ;  // wait for serial port to connect. Needed for native USB port only
   }
 
+  // Matrix panel
+  ProtomatterStatus matrixStatus = matrix.begin();
+  if (matrixStatus != PROTOMATTER_OK) {
+    // DO NOT CONTINUE if matrix setup encountered an error.
+    Serial.print("Protomatter begin() encountered error, status: ");
+    Serial.println((int)matrixStatus);
+    while (true)
+      ;
+  }
+  matrix.setFont(&FreeSansBold9pt7b);
+  matrix.fillScreen(0);  // Fill background black
+
+  //RTC
   rtc.begin();
   DateTime now = DateTime(F(__DATE__), F(__TIME__));
   rtc.adjust(now);
 
+  //WIFI
   WiFi.setPins(SPIWIFI_SS, SPIWIFI_ACK, ESP32_RESETN, ESP32_GPIO0, &SPIWIFI);
   // check for the WiFi module:
-  int status = WiFi.status();
-  if (status == WL_NO_MODULE) {
+  int wifiStatus = WiFi.status();
+  if (wifiStatus == WL_NO_MODULE) {
     Serial.println("Communication with WiFi module failed!");
     // don't continue
     while (true)
@@ -51,12 +81,12 @@ void setup() {
   }
 
   // attempt to connect to Wifi network:
-  status = WL_IDLE_STATUS;
-  while (status != WL_CONNECTED) {
+  wifiStatus = WL_IDLE_STATUS;
+  while (wifiStatus != WL_CONNECTED) {
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(ssid);
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    status = WiFi.begin(ssid, pass);
+    wifiStatus = WiFi.begin(ssid, pass);
 
     // wait 10 seconds for connection:
     delay(10000);
@@ -87,5 +117,11 @@ void loop() {
   Serial.print(now.second(), DEC);
   Serial.println();
 
-  blink(0,strip.Color(127, 127, 127), 50, 4950);
+  matrix.fillScreen(0);
+  matrix.setCursor(0, 32);
+  matrix.setTextColor(matrix.color565(10, 10, 10));
+  matrix.print(String(now.hour()) + ":" + String(now.minute()));
+  matrix.show();
+
+  blink(0, strip.Color(127, 127, 127), 50, 4950);
 }
