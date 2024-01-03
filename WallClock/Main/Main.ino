@@ -1,5 +1,6 @@
 #include <SPI.h>
 #include <WiFiNINA.h>
+#include <WiFiUdp.h>
 #include "RTC_SAMD51.h"
 #include "DateTime.h"
 #include "arduino_secrets.h"
@@ -15,9 +16,10 @@
 #define SPIWIFI_ACK 11   // a.k.a BUSY or READY pin
 #define ESP32_GPIO0 -1
 #endif
-#include <WiFiUdp.h>
 
-char daysOfTheWeek[7][12] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+
+char daysOfTheWeek[7][4] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+char monthsOfYear[12][4] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Oct", "Nov", "Dec" };
 
 
 RTC_SAMD51 rtc;
@@ -47,10 +49,10 @@ void setup() {
   strip.show();
 
   //Start with debug
-  Serial.begin(9600);
-  while (!Serial) {
-    ;  // wait for serial port to connect. Needed for native USB port only
-  }
+  // Serial.begin(9600);
+  // while (!Serial) {
+  //   ;  // wait for serial port to connect. Needed for native USB port only
+  // }
 
   // Matrix panel
   ProtomatterStatus matrixStatus = matrix.begin();
@@ -61,8 +63,9 @@ void setup() {
     while (true)
       ;
   }
-  matrix.setFont(&FreeSansBold9pt7b);
+  //matrix.setFont(&FreeSansBold9pt7b);
   matrix.fillScreen(0);  // Fill background black
+  matrix.show();
 
   //RTC
   rtc.begin();
@@ -92,36 +95,55 @@ void setup() {
     delay(10000);
   }
 
-  Serial.println("Connected to wifi");
+  // Setup the one minute interupt
+  rtc.setAlarm(0, DateTime(0, 0, 0, 0, 0, 0));  // match after every minute
+  rtc.enableAlarm(0, rtc.MATCH_SS);
+  rtc.attachInterrupt(timeScreenUpdate);
+  timeScreenUpdate(0);
 }
 
 byte ntpSyncState = 255;
 
 void loop() {
   DateTime now = rtc.now();
+  //NTPSYNC
   ntpSyncState = syncWithNTP(now, ntpSyncState);
 
-  Serial.print(now.year(), DEC);
-  Serial.print('/');
-  Serial.print(now.month(), DEC);
-  Serial.print('/');
-  Serial.print(now.day(), DEC);
+  //Pulse the Clock Dots
+  uint16_t c = now.second() % 2 == 0 ? matrix.color565(10, 10, 10) : matrix.color565(0, 0, 0);
+  matrix.fillRect(34, 11, 2, 3, c);
+  matrix.fillRect(34, 16, 2, 3, c);
 
-  Serial.print(" (");
-  Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
-  Serial.print(") ");
-  Serial.print(now.hour() - 12, DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.print(now.second(), DEC);
-  Serial.println();
-
-  matrix.fillScreen(0);
-  matrix.setCursor(0, 32);
-  matrix.setTextColor(matrix.color565(10, 10, 10));
-  matrix.print(String(now.hour()) + ":" + String(now.minute()));
+  //Notification
+  matrix.setCursor(40, 0);
+  matrix.print(now.minute() % 2 == 0 ? daysOfTheWeek[now.dayOfTheWeek()] : monthsOfYear[now.month() - 1]);
   matrix.show();
 
-  blink(0, strip.Color(127, 127, 127), 50, 4950);
+  blink(0, strip.Color(127, 127, 127), 50, 950);
+}
+
+void timeScreenUpdate(uint32_t flag) {
+  DateTime now = rtc.now();
+
+  //Hours
+  matrix.fillScreen(0);
+  matrix.setTextColor(matrix.color565(10, 10, 10));
+  matrix.setCursor(0, 3);
+  matrix.setTextSize(3);
+  String hour = now.hour() > 12 ? String(now.hour() - 12) : String(now.hour());
+  String hours = hour.length() == 1 ? (" " + hour) : hour;
+  matrix.print(hours);
+  //Minutes
+  matrix.setCursor(37, 3 + 5);
+  matrix.setTextSize(2);
+  String minutes = String(now.minute()).length() == 1 ? ("0" + String(now.minute())) : String(now.minute());
+  matrix.print(minutes);
+  //Date
+  matrix.setTextSize(1);
+  matrix.setTextColor(matrix.color565(8, 6, 8));
+  matrix.setCursor(0, 25);
+  String day = String(now.day()).length() == 1 ? ("0" + String(now.day())) : String(now.day());
+  String month = String(now.month()).length() == 1 ? ("0" + String(now.month())) : String(now.month());
+  matrix.print(day + "/" + month + "/" + String(now.year()));
+  matrix.show();
 }
