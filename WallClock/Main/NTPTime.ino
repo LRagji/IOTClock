@@ -1,5 +1,7 @@
 #define LEAP_YEAR(Y) (((1970 + (Y)) > 0) && !((1970 + (Y)) % 4) && (((1970 + (Y)) % 100) || !((1970 + (Y)) % 400)))
 #define IST_TZ_SECONDS 19800
+#define  tmYearToY2k(Y)      ((Y) - 30)    // offset is from 2000
+#define  y2kYearToTm(Y)      ((Y) + 30)  
 
 unsigned long getNTPUnixEpoch(int tz) {
   unsigned int localPort = 2390;         // local port to listen for UDP packets
@@ -109,7 +111,7 @@ DateTime parseDateTime(unsigned long timeInput) {
   const int Minute = time % 60;
   time /= 60;  // now it is hours
   const int Hour = time % 24;
-  time /= 24;                             // now it is days
+  time /= 24;  // now it is days
   const int Wday = ((time + 4) % 7) + 1;  // Sunday is day 1
 
   year = 0;
@@ -117,7 +119,7 @@ DateTime parseDateTime(unsigned long timeInput) {
   while ((unsigned)(days += (LEAP_YEAR(year) ? 366 : 365)) <= time) {
     year++;
   }
-  const int Year = year;  // year is offset from 1970
+  const int Year = tmYearToY2k(year);  // year is offset from 1970
 
   days -= LEAP_YEAR(year) ? 366 : 365;
   time -= days;  // now it is days in this year, starting at 0
@@ -149,17 +151,15 @@ DateTime parseDateTime(unsigned long timeInput) {
 
 byte syncWithNTP(DateTime now, byte elapsedDaysState) {
   byte currentGap = now.day();
-  currentGap -= (currentGap % 10);//Sync is 10 days
+  currentGap -= (currentGap % 10);  //Sync is 10 days
   if (currentGap != elapsedDaysState) {
     elapsedDaysState = currentGap;
     unsigned long localEpoch = getNTPUnixEpoch(IST_TZ_SECONDS);
     if (localEpoch != IST_TZ_SECONDS) {
       rtc.adjust(parseDateTime(localEpoch));
-       Serial.println("Synced with NTP server...");
-    }
-    else
-    {
-       Serial.println("Failed to sync with NTP server, will re-attempt later...");
+      Serial.println("Synced with NTP server...");
+    } else {
+      Serial.println("Failed to sync with NTP server, will re-attempt later...");
     }
   }
   return elapsedDaysState;

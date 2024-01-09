@@ -145,5 +145,6 @@ void timeScreenUpdate(uint32_t flag) {
   String day = String(now.day()).length() == 1 ? ("0" + String(now.day())) : String(now.day());
   String month = String(now.month()).length() == 1 ? ("0" + String(now.month())) : String(now.month());
   matrix.print(day + "/" + month + "/" + String(now.year()));
+  //
   matrix.show();
 }
