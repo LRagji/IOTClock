@@ -6,7 +6,10 @@
 #include "arduino_secrets.h"
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_Protomatter.h>
-#include <Fonts/FreeSansBold9pt7b.h>  // Large friendly font
+// #include <Fonts/FreeSansBold9pt7b.h>  // Large friendly font
+#include "frames.h"
+// #include <ArduinoJson.h>
+#include "arduino_secrets.h"
 
 #if defined(ADAFRUIT_FEATHER_M4_EXPRESS) || defined(ADAFRUIT_FEATHER_M0_EXPRESS) || defined(ADAFRUIT_FEATHER_M0) || defined(ADAFRUIT_ITSYBITSY_M4_EXPRESS)
 // Configure the pins used for the ESP32 connection
@@ -37,9 +40,11 @@ Adafruit_Protomatter matrix(
   clockPin, latchPin, oePin,  // Other matrix control pins
   false);                     // HERE IS THE MAGIC FOR DOUBLE-BUFFERING!
 
-#include "arduino_secrets.h"
+
 char ssid[] = SECRET_SSID;
 char pass[] = SECRET_PASS;
+byte ntpSyncState = 255;
+boolean timeDisplayed = false;
 
 
 void setup() {
@@ -65,6 +70,7 @@ void setup() {
   }
   //matrix.setFont(&FreeSansBold9pt7b);
   matrix.fillScreen(0);  // Fill background black
+  drawFrame(smart_frame);
   matrix.show();
 
   //RTC
@@ -90,36 +96,52 @@ void setup() {
     Serial.println(ssid);
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
     wifiStatus = WiFi.begin(ssid, pass);
-
-    // wait 10 seconds for connection:
-    delay(10000);
+    uint epoch = millis();
+    uint8_t counter = 0;
+    while (millis() - epoch < 10000) {  // wait 10 seconds for connection:
+                                        // matrix.fillScreen(0);             // Fill background black
+                                        // matrix.fillRect(0, counter % 32, 5, 7, matrix.color565(0, 10, 0));
+                                        // matrix.show();
+                                        // counter++;
+      // drawFrame(fire_frame_1);
+      // drawFrame(fire_frame_2);
+      // drawFrame(fire_frame_3);
+      // drawFrame(fire_frame_4);
+      // drawFrame(fire_frame_5);
+      // drawFrame(fire_frame_6);
+      // drawFrame(fire_frame_7);
+      // drawFrame(fire_frame_8);
+      // drawFrame(fire_frame_9);
+    }
   }
+  //Push for inital screen
+  ntpSyncState = syncWithNTP(now, ntpSyncState);
+  timeScreenUpdate(0);
 
   // Setup the one minute interupt
   rtc.setAlarm(0, DateTime(0, 0, 0, 0, 0, 0));  // match after every minute
   rtc.enableAlarm(0, rtc.MATCH_SS);
   rtc.attachInterrupt(timeScreenUpdate);
-  timeScreenUpdate(0);
 }
-
-byte ntpSyncState = 255;
 
 void loop() {
   DateTime now = rtc.now();
   //NTPSYNC
   ntpSyncState = syncWithNTP(now, ntpSyncState);
 
-  //Pulse the Clock Dots
-  uint16_t c = now.second() % 2 == 0 ? matrix.color565(10, 10, 10) : matrix.color565(0, 0, 0);
-  matrix.fillRect(34, 11, 2, 3, c);
-  matrix.fillRect(34, 16, 2, 3, c);
+  if (timeDisplayed == true) {
+    //Pulse the Clock Dots()
+    uint16_t c = now.second() % 2 == 0 ? matrix.color565(10, 10, 10) : matrix.color565(0, 0, 0);
+    matrix.fillRect(34, 11, 2, 3, c);
+    matrix.fillRect(34, 16, 2, 3, c);
+    matrix.show();
+  }
 
-  //Notification
-  matrix.setCursor(40, 0);
-  matrix.print(now.minute() % 2 == 0 ? daysOfTheWeek[now.dayOfTheWeek()] : monthsOfYear[now.month() - 1]);
-  matrix.show();
+  //read_price(0, 0, "MSFT");
 
-  blink(0, strip.Color(127, 127, 127), 50, 950);
+  //blink(0, strip.Color(127, 127, 127), 50, 950);
+
+  delay(1000);  //Since there is no per second alram that we can set with RTC.
 }
 
 void timeScreenUpdate(uint32_t flag) {
@@ -127,7 +149,7 @@ void timeScreenUpdate(uint32_t flag) {
 
   //Hours
   matrix.fillScreen(0);
-  matrix.setTextColor(matrix.color565(10, 10, 10));
+  matrix.setTextColor(matrix.color565(30, 30, 30));
   matrix.setCursor(0, 3);
   matrix.setTextSize(3);
   String hour = now.hour() > 12 ? String(now.hour() - 12) : String(now.hour());
@@ -140,11 +162,15 @@ void timeScreenUpdate(uint32_t flag) {
   matrix.print(minutes);
   //Date
   matrix.setTextSize(1);
-  matrix.setTextColor(matrix.color565(8, 6, 8));
+  matrix.setTextColor(matrix.color565(50, 6, 8));
   matrix.setCursor(0, 25);
   String day = String(now.day()).length() == 1 ? ("0" + String(now.day())) : String(now.day());
   String month = String(now.month()).length() == 1 ? ("0" + String(now.month())) : String(now.month());
   matrix.print(day + "/" + month + "/" + String(now.year()));
-  //
+
+  //Display Day of the Week or Month name depending on the minutes.
+  matrix.setCursor(40, 0);
+  matrix.print(now.minute() % 2 == 0 ? daysOfTheWeek[now.dayOfTheWeek()] : monthsOfYear[now.month() - 1]);
   matrix.show();
+  timeDisplayed = true;
 }
