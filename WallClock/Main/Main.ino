@@ -26,7 +26,7 @@ char monthsOfYear[12][4] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "A
 
 
 RTC_SAMD51 rtc;
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, 4, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(29, 4, NEO_GRB + NEO_KHZ800);
 uint8_t rgbPins[] = { 7, 8, 9, 10, 11, 12 };
 uint8_t addrPins[] = { 17, 18, 19, 20, 21 };
 uint8_t clockPin = 14;
@@ -119,19 +119,21 @@ void setup() {
   timeScreenUpdate(0);
 
   // Setup the one minute interupt
-  rtc.setAlarm(0, DateTime(0, 0, 0, 0, 0, 0));  // match after every minute
-  rtc.enableAlarm(0, rtc.MATCH_SS);
-  rtc.attachInterrupt(timeScreenUpdate);
+  //rtc.setAlarm(0, DateTime(0, 0, 0, 0, 0, 0));  // match after every minute
+  //rtc.enableAlarm(0, rtc.MATCH_SS);
+  //rtc.attachInterrupt(timeScreenUpdate);
 }
 
+byte minute = 255;
 void loop() {
+  delay(1000);  //Since there is no per second alram that we can set with RTC.
   DateTime now = rtc.now();
   //NTPSYNC
   ntpSyncState = syncWithNTP(now, ntpSyncState);
 
   if (timeDisplayed == true) {
     //Pulse the Clock Dots()
-    uint16_t c = now.second() % 2 == 0 ? matrix.color565(10, 10, 10) : matrix.color565(0, 0, 0);
+    uint16_t c = now.second() % 2 == 0 ? matrix.color565(100, 100, 100) : matrix.color565(0, 0, 0);
     matrix.fillRect(34, 11, 2, 3, c);
     matrix.fillRect(34, 16, 2, 3, c);
     matrix.show();
@@ -140,8 +142,16 @@ void loop() {
   //read_price(0, 0, "MSFT");
 
   //blink(0, strip.Color(127, 127, 127), 50, 950);
+  byte led = 0;  //First led is 3.3v to 5v converter
+  while (led <= 28) {
+    blink(led, strip.Color(127, 127, 127), 15, 15);
+    led++;
+  }
 
-  delay(1000);  //Since there is no per second alram that we can set with RTC.
+  if (minute != now.minute()) {
+    minute = now.minute();
+    timeScreenUpdate(0);
+  }
 }
 
 void timeScreenUpdate(uint32_t flag) {
@@ -149,7 +159,7 @@ void timeScreenUpdate(uint32_t flag) {
 
   //Hours
   matrix.fillScreen(0);
-  matrix.setTextColor(matrix.color565(30, 30, 30));
+  matrix.setTextColor(matrix.color565(100, 100, 100));
   matrix.setCursor(0, 3);
   matrix.setTextSize(3);
   String hour = now.hour() > 12 ? String(now.hour() - 12) : String(now.hour());
@@ -162,7 +172,7 @@ void timeScreenUpdate(uint32_t flag) {
   matrix.print(minutes);
   //Date
   matrix.setTextSize(1);
-  matrix.setTextColor(matrix.color565(50, 6, 8));
+  matrix.setTextColor(matrix.color565(100, 56, 58));
   matrix.setCursor(0, 25);
   String day = String(now.day()).length() == 1 ? ("0" + String(now.day())) : String(now.day());
   String month = String(now.month()).length() == 1 ? ("0" + String(now.month())) : String(now.month());
