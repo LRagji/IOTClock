@@ -44,7 +44,7 @@ Adafruit_Protomatter matrix(
 char ssid[] = SECRET_SSID;
 char pass[] = SECRET_PASS;
 byte ntpSyncState = 255;
-boolean timeDisplayed = false;
+// boolean timeDisplayed = false;
 
 
 void setup() {
@@ -89,8 +89,7 @@ void setup() {
       ;
   }
 
-  // attempt to connect to Wifi network:
-  wifiStatus = WL_IDLE_STATUS;
+  //attempt to connect to Wifi network : wifiStatus = WL_IDLE_STATUS;
   while (wifiStatus != WL_CONNECTED) {
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(ssid);
@@ -116,7 +115,7 @@ void setup() {
   }
   //Push for inital screen
   ntpSyncState = syncWithNTP(now, ntpSyncState);
-  timeScreenUpdate(0);
+  //timeScreenUpdate(0);
 
   // Setup the one minute interupt
   //rtc.setAlarm(0, DateTime(0, 0, 0, 0, 0, 0));  // match after every minute
@@ -127,60 +126,51 @@ void setup() {
 byte minute = 255;
 void loop() {
   delay(1000);  //Since there is no per second alram that we can set with RTC.
+
   DateTime now = rtc.now();
   //NTPSYNC
   ntpSyncState = syncWithNTP(now, ntpSyncState);
 
-  if (timeDisplayed == true) {
-    //Pulse the Clock Dots()
-    uint16_t c = now.second() % 2 == 0 ? matrix.color565(100, 100, 100) : matrix.color565(0, 0, 0);
-    matrix.fillRect(34, 11, 2, 3, c);
-    matrix.fillRect(34, 16, 2, 3, c);
-    matrix.show();
-  }
-
   //read_price(0, 0, "MSFT");
 
   //blink(0, strip.Color(127, 127, 127), 50, 950);
-  byte led = 0;  //First led is 3.3v to 5v converter
-  while (led <= 28) {
-    blink(led, strip.Color(127, 127, 127), 15, 15);
-    led++;
-  }
 
   if (minute != now.minute()) {
     minute = now.minute();
-    timeScreenUpdate(0);
+    uint32_t digitColor = strip.Color(0, 255, 0);
+    //Hours
+    uint8_t hh = now.hour() - 12;
+    hh = hh == 0 ? hh = 12 : hh;
+    if (hh > 9) {
+      displayDigit(extractDigit(now.hour(), 10), 3, digitColor);
+    } else {
+      displayDigit(8, 3, 0);  //Switch off that digit
+    }
+    displayDigit(extractDigit(hh, 1), 2, digitColor);
+    //Minutes
+    if (now.minute() > 9) {
+      displayDigit(extractDigit(now.minute(), 10), 1, digitColor);
+    } else {
+      displayDigit(8, 1, 0);  //Switch off that digit
+    }
+    displayDigit(extractDigit(now.minute(), 1), 0, digitColor);
+
+    //Date
+    matrix.fillScreen(0);
+    matrix.setTextSize(1);
+    matrix.setTextColor(matrix.color565(100, 56, 58));
+    matrix.setCursor(0, 25);
+    String day = String(now.day()).length() == 1 ? ("0" + String(now.day())) : String(now.day());
+    String month = String(now.month()).length() == 1 ? ("0" + String(now.month())) : String(now.month());
+    matrix.print(day + "/" + month + "/" + String(now.year()));
+
+    //Display Day of the Week or Month name depending on the minutes.
+    matrix.setCursor(40, 0);
+    matrix.print(now.minute() % 2 == 0 ? daysOfTheWeek[now.dayOfTheWeek()] : monthsOfYear[now.month() - 1]);
+    matrix.show();
   }
 }
 
-void timeScreenUpdate(uint32_t flag) {
-  DateTime now = rtc.now();
-
-  //Hours
-  matrix.fillScreen(0);
-  matrix.setTextColor(matrix.color565(100, 100, 100));
-  matrix.setCursor(0, 3);
-  matrix.setTextSize(3);
-  String hour = now.hour() > 12 ? String(now.hour() - 12) : String(now.hour());
-  String hours = hour.length() == 1 ? (" " + hour) : hour;
-  matrix.print(hours);
-  //Minutes
-  matrix.setCursor(37, 3 + 5);
-  matrix.setTextSize(2);
-  String minutes = String(now.minute()).length() == 1 ? ("0" + String(now.minute())) : String(now.minute());
-  matrix.print(minutes);
-  //Date
-  matrix.setTextSize(1);
-  matrix.setTextColor(matrix.color565(100, 56, 58));
-  matrix.setCursor(0, 25);
-  String day = String(now.day()).length() == 1 ? ("0" + String(now.day())) : String(now.day());
-  String month = String(now.month()).length() == 1 ? ("0" + String(now.month())) : String(now.month());
-  matrix.print(day + "/" + month + "/" + String(now.year()));
-
-  //Display Day of the Week or Month name depending on the minutes.
-  matrix.setCursor(40, 0);
-  matrix.print(now.minute() % 2 == 0 ? daysOfTheWeek[now.dayOfTheWeek()] : monthsOfYear[now.month() - 1]);
-  matrix.show();
-  timeDisplayed = true;
+uint8_t extractDigit(uint8_t number, uint8_t place) {
+  return (number / place) % 10;
 }
