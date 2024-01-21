@@ -1,3 +1,5 @@
+#define CRYSTALLESS 1
+
 #include <SPI.h>
 #include <WiFiNINA.h>
 #include <WiFiUdp.h>
@@ -26,7 +28,7 @@ char monthsOfYear[12][4] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "A
 
 
 RTC_SAMD51 rtc;
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(29, 4, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(31, 4, NEO_GRB + NEO_KHZ800);
 uint8_t rgbPins[] = { 7, 8, 9, 10, 11, 12 };
 uint8_t addrPins[] = { 17, 18, 19, 20, 21 };
 uint8_t clockPin = 14;
@@ -124,6 +126,8 @@ void setup() {
 }
 
 byte minute = 255;
+uint32_t digitColor = strip.Color(100, 56, 58);
+
 void loop() {
   delay(1000);  //Since there is no per second alram that we can set with RTC.
 
@@ -133,16 +137,19 @@ void loop() {
 
   //read_price(0, 0, "MSFT");
 
-  //blink(0, strip.Color(127, 127, 127), 50, 950);
+  //Pulse dots in between time digits
+  strip.setPixelColor(29, now.second() % 2 == 0 ? digitColor : 0);
+  strip.setPixelColor(30, now.second() % 2 == 0 ? digitColor : 0);
+  strip.show();
 
   if (minute != now.minute()) {
     minute = now.minute();
-    uint32_t digitColor = strip.Color(0, 255, 0);
+
     //Hours
     uint8_t hh = now.hour() - 12;
-    hh = hh == 0 ? hh = 12 : hh;
+    hh = (hh == 0) ? 12 : hh;
     if (hh > 9) {
-      displayDigit(extractDigit(now.hour(), 10), 3, digitColor);
+      displayDigit(extractDigit(hh, 10), 3, digitColor);
     } else {
       displayDigit(8, 3, 0);  //Switch off that digit
     }
@@ -151,7 +158,7 @@ void loop() {
     if (now.minute() > 9) {
       displayDigit(extractDigit(now.minute(), 10), 1, digitColor);
     } else {
-      displayDigit(8, 1, 0);  //Switch off that digit
+      displayDigit(0, 1, digitColor);  //Switch digit to zero
     }
     displayDigit(extractDigit(now.minute(), 1), 0, digitColor);
 
@@ -159,14 +166,14 @@ void loop() {
     matrix.fillScreen(0);
     matrix.setTextSize(1);
     matrix.setTextColor(matrix.color565(100, 56, 58));
-    matrix.setCursor(0, 25);
+    matrix.setCursor(2, 0);
     String day = String(now.day()).length() == 1 ? ("0" + String(now.day())) : String(now.day());
     String month = String(now.month()).length() == 1 ? ("0" + String(now.month())) : String(now.month());
     matrix.print(day + "/" + month + "/" + String(now.year()));
 
     //Display Day of the Week or Month name depending on the minutes.
-    matrix.setCursor(40, 0);
-    matrix.print(now.minute() % 2 == 0 ? daysOfTheWeek[now.dayOfTheWeek()] : monthsOfYear[now.month() - 1]);
+    // matrix.setCursor(40, 0);
+    // matrix.print(now.minute() % 2 == 0 ? daysOfTheWeek[now.dayOfTheWeek()] : monthsOfYear[now.month() - 1]);
     matrix.show();
   }
 }

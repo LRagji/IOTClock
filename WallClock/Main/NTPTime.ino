@@ -94,8 +94,8 @@ unsigned long readNTPpacket(byte packetBuffer[], byte NTP_PACKET_SIZE, WiFiUDP* 
 }
 
 byte syncWithNTP(DateTime now, byte elapsedState) {
-  byte currentGap = now.minute();
-  currentGap -= (currentGap % 10);  //Sync is 10 mins
+  byte currentGap = now.day();
+  currentGap -= (currentGap % 10);  //Sync is 10 days
   if (currentGap != elapsedState) {
     elapsedState = currentGap;
     unsigned long localEpoch = getNTPUnixEpoch(IST_TZ_SECONDS);

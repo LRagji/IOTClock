@@ -96,7 +96,7 @@ void displayDigit(byte value, byte digit, uint32_t color) {
     case 9:
       strip.setPixelColor((digit * 7) + (digit != 1 ? antiClockwise[1] : 1), color);
       strip.setPixelColor(digit * 7 + (digit != 1 ? antiClockwise[2] : 2), color);
-      strip.setPixelColor(digit * 7 + (digit != 1 ? antiClockwise[3] : 3), 0);
+      strip.setPixelColor(digit * 7 + (digit != 1 ? antiClockwise[3] : 3), color);
       strip.setPixelColor(digit * 7 + (digit != 1 ? antiClockwise[4] : 4), 0);
       strip.setPixelColor(digit * 7 + (digit != 1 ? antiClockwise[5] : 5), color);
       strip.setPixelColor(digit * 7 + (digit != 1 ? antiClockwise[6] : 6), color);
