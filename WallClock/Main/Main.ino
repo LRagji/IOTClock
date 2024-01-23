@@ -156,7 +156,7 @@ void loop() {
 
     //Hours
     uint8_t hh = now.hour();
-    hh = hh > 12 ? (hh - 12) : hh;
+    hh = hh > 12 ? (hh - 12) : (hh == 0 ? 12 : hh);
     if (hh > 9) {
       displayDigit(extractDigit(hh, 10), 3, digitColor);
     } else {
@@ -187,23 +187,26 @@ void loop() {
     matrix.setCursor(floor(32 - w / 2), 8);
     matrix.print(daysOfTheWeek[now.dayOfTheWeek()]);
 
-    //Display Temp
-    float temp = rtc.getTemperature();
-    if (temp > 99.99) {
-      matrix.print(">99!");
-    } else if (temp < 0.00) {
-      matrix.print("<0!");
-    } else {
-      String strTemp = temp < 10 ? ("0" + String(temp * 100)) : String(temp * 100);
-      matrix.setCursor(32, 25);
-      matrix.print(strTemp.substring(0, 2));
-      matrix.drawPixel(44, 31, matrixColor);
-      matrix.setCursor(46, 25);
-      matrix.print(strTemp.substring(2, 4));
-      matrix.drawPixel(58, 25, matrixColor);
-      matrix.setCursor(58, 25);
-      matrix.print("c");
-    }
+    // //Display Temp
+    // float temp = rtc.getTemperature();
+    // if (temp > 99.99) {
+    //   matrix.print(">99!");
+    // } else if (temp < 0.00) {
+    //   matrix.print("<0!");
+    // } else {
+    //   String strTemp = temp < 10 ? ("0" + String(temp * 100)) : String(temp * 100);
+    //   matrix.setCursor(32, 25);
+    //   matrix.print(strTemp.substring(0, 2));
+    //   matrix.drawPixel(44, 31, matrixColor);
+    //   matrix.setCursor(46, 25);
+    //   matrix.print(strTemp.substring(2, 4));
+    //   matrix.drawPixel(58, 25, matrixColor);
+    //   matrix.setCursor(58, 25);
+    //   matrix.print("c");
+    // }
+
+    drawSmallFrame(now.minute(), 15, 16, 16, mario_frame);         // Mario with Time
+    matrix.drawFastHLine(0, 31, 64, matrix.color565(91, 64, 55));  // Walking Surface
   }
 
   //Display
