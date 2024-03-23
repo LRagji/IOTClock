@@ -129,8 +129,8 @@ void setup() {
 }
 
 byte minute = 255;
-uint32_t digitColor = strip.Color(100, 56, 58);
-uint32_t matrixColor = matrix.color565(100, 56, 58);
+uint32_t digitColor = strip.Color(100,10, 0);
+uint32_t matrixColor = matrix.color565(255, 165, 0);
 
 void loop() {
   delay(1000);  //Since there is no per second alram that we can set with RTC.
